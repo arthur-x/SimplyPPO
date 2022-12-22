@@ -11,7 +11,7 @@ That's it! All other things follow the original paper.
 
 Also check out [SimplySAC](https://github.com/arthur-x/SimplySAC), a minimal Soft-Actor-Critic PyTorch implementation.
 
-> NOTE: This is a single-threaded PPO implementation for continuous control tasks. The particular implementations of global log_std and state normalization are adopted from [here](https://github.com/Lizhi-sjtu/DRL-code-pytorch/tree/main/5.PPO-continuous), where various other tricks are also discussed.
+> NOTE: This is a single-threaded PPO implementation for continuous control tasks. The particular implementations of global log_std and state normalization are adopted from [here](https://github.com/Lizhi-sjtu/DRL-code-pytorch/tree/main/5.PPO-continuous), where various other tricks are also discussed (https://github.com/Lizhi-sjtu/DRL-code-pytorch/issues/3).
 
 ## PyBullet benchmarks:
 
