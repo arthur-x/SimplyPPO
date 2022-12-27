@@ -50,29 +50,35 @@ class Actor(nn.Module):
     def __init__(self, state_dim, action_dim):
         super(Actor, self).__init__()
         n_neurons = 64
-        self.mu = nn.Sequential(
+        self.fc = nn.Sequential(
             nn.Linear(state_dim, n_neurons),
             nn.Tanh(),
             nn.Linear(n_neurons, n_neurons),
-            nn.Tanh(),
-            nn.Linear(n_neurons, action_dim),
             nn.Tanh())
-        self.log_std = nn.Parameter(torch.zeros(1, action_dim))
+        self.mu = nn.Linear(n_neurons, action_dim)
+        self.log_std = nn.Linear(n_neurons, action_dim)
 
-    def forward(self, s, mean=False, with_prob=True, action=None):
-        mu = self.mu(s)
+    @staticmethod
+    def get_prob(dist, action):
+        log_prob = dist.log_prob(action).sum(1, keepdim=True)
+        real_log_prob = log_prob - 2 * (np.log(2) - action - nn.Softplus()(-2 * action)).sum(1, keepdim=True)
+        return real_log_prob
+
+    def forward(self, s, mean=False, action=None):
+        x = self.fc(s)
+        mu = self.mu(x)
         if mean:
-            return mu
+            return torch.tanh(mu)
         else:
-            std = self.log_std.expand_as(mu).exp()
+            std = torch.clamp(self.log_std(x), -4, 0).exp()
             dist = torch.distributions.Normal(mu, std)
-            if action is None:
-                action = dist.rsample()
-            if with_prob:
-                log_prob = dist.log_prob(action).sum(1, keepdim=True)
-                return action, log_prob
+            a = dist.rsample()
+            real_a = torch.tanh(a)
+            if action is not None:
+                action = torch.arctanh(torch.clamp(action, -0.999, 0.999))
+                return self.get_prob(dist, a), self.get_prob(dist, action)
             else:
-                return action
+                return real_a, self.get_prob(dist, a)
 
 
 class Critic(nn.Module):
@@ -118,7 +124,7 @@ class TrajectoryBuffer:
     def calc_adv(self, gamma, gae_lambda, v1, v2):
         delta = gamma * v2 * (1 - self.done_buf + self.trct_buf) + self.rews_buf - v1
         advt = 0
-        for i in range(self.size-1, -1, -1):
+        for i in range(self.size - 1, -1, -1):
             advt = delta[i] + gae_lambda * gamma * advt * (1 - self.done_buf[i])
             self.advt_buf[i] = advt
         self.targ_buf = self.advt_buf + v1
@@ -155,10 +161,10 @@ class PPOAgent:
         with torch.no_grad():
             state = np_to_tensor(state, self.device).reshape(1, -1)
             if mean:
-                action = self.actor(state, mean=mean)
+                action = self.actor(state, mean=True)
                 return action.cpu().squeeze().numpy()
             else:
-                action, log_p = self.actor(state, mean=mean)
+                action, log_p = self.actor(state)
                 return action.cpu().squeeze().numpy(), log_p.cpu().squeeze().numpy()
 
     def remember(self, state, next_state, action, log_p, reward, done, truncated):
@@ -181,7 +187,7 @@ class PPOAgent:
             idxs = np.arange(self.rollout_length)
             np.random.shuffle(idxs)
             for i in range(self.rollout_length // self.batch_size):
-                batch = self.buffer.sample_batch(idxs[self.batch_size*i:self.batch_size*(i+1)])
+                batch = self.buffer.sample_batch(idxs[self.batch_size * i:self.batch_size * (i + 1)])
                 si = np_to_tensor(batch['sta1'], self.device)
                 ai = np_to_tensor(batch['acts'], self.device)
                 pi = np_to_tensor(batch['prob'], self.device)
@@ -189,11 +195,11 @@ class PPOAgent:
                 advi = np_to_tensor(batch['advt'], self.device)
 
                 self.optim_actor.zero_grad()
-                _, log_p_new = self.actor(si, action=ai)
+                log_p, log_p_new = self.actor(si, action=ai)
                 ratio = torch.exp(log_p_new - pi)
                 clip_loss = - torch.min(ratio * advi,
-                                        torch.clamp(ratio, 1-self.epsilon, 1+self.epsilon) * advi).mean() \
-                            - self.entropy_weight * self.actor.log_std.sum()
+                                        torch.clamp(ratio, 1 - self.epsilon, 1 + self.epsilon) * advi
+                                        ).mean() + self.entropy_weight * log_p.mean()
                 clip_loss.backward()
                 nn.utils.clip_grad_norm_(self.actor.parameters(), self.gradient_clip)
                 self.optim_actor.step()

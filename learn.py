@@ -13,18 +13,20 @@ def learn(device=0, environment=0, log=1):
     state_norm = Normalization(state_dim)
     truncate_length = env._max_episode_steps
     rollout_length = 2048
-    evaluate_length = 2e3
+    evaluate_length = 1e4
+    total = 1e6
     agent = PPOAgent(state_dim, action_dim, rollout_length, device=device)
     total_frames = 0
     with open(log_dir, "w", newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['frames', 'return'])
         writer.writerow([total_frames, evaluate(environment, agent, state_norm)])
-    while total_frames < 1e6:
+    while 1:
         state = env.reset()
         state = state_norm(state)
         frame = 0
-        while 1:
+        done = False
+        while not done:
             action, log_p = agent.act(state)
             next_state, reward, done, _ = env.step(action)
             frame += 1
@@ -38,8 +40,8 @@ def learn(device=0, environment=0, log=1):
                 with open(log_dir, "a+", newline='') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerow([total_frames, evaluate(environment, agent, state_norm)])
-            if done:
-                break
+            if total_frames == total:
+                return
 
 
 def evaluate(environment, agent, state_norm):
@@ -47,14 +49,13 @@ def evaluate(environment, agent, state_norm):
     state = env.reset()
     state = state_norm(state, update=False)
     total_reward = 0
-    while 1:
+    done = False
+    while not done:
         action = agent.act(state, mean=True)
         next_state, reward, done, _ = env.step(action)
         next_state = state_norm(next_state, update=False)
         state = next_state
         total_reward += reward
-        if done:
-            break
     return total_reward
 
 

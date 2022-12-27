@@ -6,12 +6,13 @@ SimplyPPO replicates PPO with minimum (~250) lines of code in clean, readable Py
 * Advantage and state normalization.
 * Gradient clipping.
 * Entropy bonus.
+* Tanh squashing to ensure action bounds and log_std clamping (as in SAC).
 
 That's it! All other things follow the original paper.
 
 Also check out [SimplySAC](https://github.com/arthur-x/SimplySAC), a minimal Soft-Actor-Critic PyTorch implementation.
 
-> NOTE: This is a single-threaded PPO implementation for continuous control tasks. The particular implementations of global log_std and state normalization are adopted from [here](https://github.com/Lizhi-sjtu/DRL-code-pytorch/tree/main/5.PPO-continuous), where various other tricks are also discussed (https://github.com/Lizhi-sjtu/DRL-code-pytorch/issues/3).
+> NOTE: This is a single-threaded PPO implementation for continuous control tasks. The particular implementations of state normalization are adopted from [here](https://github.com/Lizhi-sjtu/DRL-code-pytorch/tree/main/5.PPO-continuous), where various other tricks are also discussed.
 
 ## PyBullet benchmarks:
 
@@ -27,7 +28,7 @@ You can find the performance of Stable Baselines3 [here](https://stable-baseline
 
 These figures are produced with:
 
-* One evaluation episode every 2e3 steps.
+* One evaluation episode every 1e4 steps.
 * 5 random seeds, where the mean return is represented by the solid line, and max/min return by the shaded area.
 
 To execute a single run:
