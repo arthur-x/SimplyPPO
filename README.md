@@ -1,5 +1,8 @@
 # SimplyPPO: A Minimal Proximal-Policy-Optimization PyTorch Implementation
 
+> [!Warning]
+> The latest `gym` is not backward-compatible. Suggest using `gym<=0.23.1` to avoid unexpected errors.
+
 SimplyPPO replicates PPO with minimum (~250) lines of code in clean, readable PyTorch style, while trying to use as few additional tricks and hyper-parameters as possible.
 
 ## Implementation details:
@@ -12,8 +15,7 @@ That's it! All other things follow the original paper.
 
 Also check out [SimplySAC](https://github.com/arthur-x/SimplySAC), a minimal Soft-Actor-Critic PyTorch implementation.
 
-> **Note**
->
+> [!Note]
 > This is a single-threaded PPO implementation for continuous control tasks. The particular implementations of state normalization are adopted from [here](https://github.com/Lizhi-sjtu/DRL-code-pytorch/tree/main/5.PPO-continuous), where various other tricks are also discussed.
 
 ## PyBullet benchmarks:
