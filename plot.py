@@ -34,6 +34,6 @@ def plot_curve(env, n_logs=5, evaluate_length=1e4, total=1e6):
 
 if __name__ == '__main__':
     env_list = ['HopperBulletEnv-v0', 'Walker2DBulletEnv-v0', 'HalfCheetahBulletEnv-v0', 'AntBulletEnv-v0']
-    mpl.style.use('seaborn')
+    mpl.style.use('seaborn-v0_8')
     for env in range(4):
         plot_curve(env, n_logs=5)
